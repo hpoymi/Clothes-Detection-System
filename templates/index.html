@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI DETECT</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+    <form id="profile-form" action="{{ url_for('profile') }}" method="post" style="display: none;">
+        <input type="hidden" name="name" id="hidden-name-input">
+    </form>
+
+    <a href="#" class="profile-link" onclick="document.getElementById('profile-form').submit()">
+        <img src="{{ url_for('static', filename='profile_image.png') }}" alt="Profile" class="profile-image">
+    </a>
+
+    <h1>Detekcja ubrań</h1>
+
+    <div id="loading-container" style="display: none;">
+        <img src="{{ url_for('static', filename='loading.gif') }}" alt="Loading" id="loading-image">
+    </div>
+
+    <p>Prześlij obraz, aby wykryć ubrania:</p>
+    <label for="image-upload" id="upload-button">Dodaj Obraz</label>
+    <input type="file" id="image-upload" accept="image/*">
+
+    <div id="image-container">
+        <img id="input-image">
+        <img id="output-image" style="display: none;">
+        <img id="loading-gif" src="{{ url_for('static', filename='loading.gif') }}" alt="Loading"
+             style="display: none; width: auto; height: auto;">
+    </div>
+
+    <button id="show-folders-button" style="display: none;">Oddziel ubrania</button>
+
+    <div id="folders-container"></div>
+
+    <button id="add-to-wardrobe-button" style="display: none;" onclick="addToWardrobe()">Dodaj do Szafki Wirtualnej</button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const storedInputImageURL = localStorage.getItem('inputImageURL');
+            const storedOutputImageURL = localStorage.getItem('outputImageURL');
+
+            const inputImage = document.getElementById('input-image');
+            const outputImage = document.getElementById('output-image');
+
+            if (storedInputImageURL) {
+                inputImage.src = storedInputImageURL;
+            }
+
+            if (storedOutputImageURL) {
+                outputImage.src = storedOutputImageURL;
+                outputImage.style.display = 'block';
+                document.getElementById('loading-gif').style.display = 'none';
+            }
+        });
+
+        const isDownloadButtonVisible = localStorage.getItem('isDownloadButtonVisible') === 'true';
+        const downloadButton = document.getElementById('show-folders-button');
+        downloadButton.style.display = isDownloadButtonVisible ? 'block' : 'none';
+
+        document.getElementById('image-upload').addEventListener('change', async function () {
+            const input = document.getElementById('image-upload');
+            const inputImage = document.getElementById('input-image');
+            const outputImage = document.getElementById('output-image');
+            const loadingGif = document.getElementById('loading-gif');
+            const downloadButton = document.getElementById('show-folders-button');
+            const addToWardrobeButton = document.getElementById('add-to-wardrobe-button');
+
+            inputImage.src = "";
+            outputImage.src = "";
+
+            loadingGif.style.display = 'block';
+            outputImage.style.display = 'none';
+            downloadButton.style.display = 'none';
+            addToWardrobeButton.style.display = 'none';
+
+            const file = input.files[0];
+
+            if (file) {
+                const formData = new FormData();
+                formData.append('image', file);
+
+                inputImage.src = URL.createObjectURL(file);
+
+                try {
+                    const response = await fetch('/run_yolo_detection', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'Accept': 'application/json',
+                        },
+                    });
+
+                    if (response.ok) {
+                        console.log('YOLOv5 detection successful!');
+
+                        const data = await response.json();
+                        console.log('Response data:', data);
+
+                        if (data.success) {
+                            const timestamp = new Date().getTime();
+                            outputImage.src = `/get_output_image?timestamp=${timestamp}`;
+                            loadingGif.style.display = 'none';
+                            outputImage.style.display = 'block';
+                            downloadButton.style.display = 'block';
+                            addToWardrobeButton.style.display = 'block';
+
+                            const foldersContainer = document.getElementById('folders-container');
+                            foldersContainer.innerHTML = '';  // Clear the content
+
+                            localStorage.setItem('inputImageURL', inputImage.src);
+                            localStorage.setItem('outputImageURL', outputImage.src);
+                            localStorage.setItem('isDownloadButtonVisible', 'true');
+                        } else {
+                            console.error('Error running YOLOv5 detection:', data.error);
+                        }
+                    } else {
+                        console.error('Error running YOLOv5 detection:', response.statusText);
+                    }
+                } catch (error) {
+                    console.error('Error running YOLOv5 detection:', error.message);
+                }
+            } else {
+                localStorage.removeItem('inputImageURL');
+                localStorage.removeItem('outputImageURL');
+                loadingGif.style.display = 'none';
+                downloadButton.style.display = 'none';
+                addToWardrobeButton.style.display = 'none';
+
+                const foldersContainer = document.getElementById('folders-container');
+                foldersContainer.innerHTML = '';
+
+                localStorage.setItem('isDownloadButtonVisible', 'false');
+            }
+        });
+
+        document.getElementById('show-folders-button').addEventListener('click', async function () {
+            const outputImage = document.getElementById('output-image');
+            const foldersContainer = document.getElementById('folders-container');
+
+            const timestamp = new Date().getTime();
+            outputImage.src = `/get_output_image?timestamp=${timestamp}`;
+
+            const response = await fetch('/get_folders_and_images');
+            const data = await response.json();
+
+            if (data.folders_and_images && Object.keys(data.folders_and_images).length > 0) {
+
+                for (const folder in data.folders_and_images) {
+                    const folderDiv = document.createElement('div');
+                    folderDiv.className = 'folder-container';
+
+                    const folderTitle = document.createElement('p');
+                    folderTitle.textContent = `${folder}`;
+                    folderDiv.appendChild(folderTitle);
+
+                    const imagesContainer = document.createElement('div');
+                    imagesContainer.className = 'images-container';
+
+                    data.folders_and_images[folder].forEach(image => {
+                        const imageContainer = document.createElement('div');
+                        imageContainer.className = 'image-container';
+
+                        const imageElement = document.createElement('img');
+                        imageElement.src = `/get_image?folder=${encodeURIComponent(data.base_path)}/crops/${encodeURIComponent(folder)}&image=${encodeURIComponent(image)}`;
+                        imageElement.alt = image;
+
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.name = 'clothes-checkbox';
+                        checkbox.value = image;
+
+                        imageContainer.appendChild(checkbox);
+                        imageContainer.appendChild(imageElement);
+                        imagesContainer.appendChild(imageContainer);
+                    });
+
+                    folderDiv.appendChild(imagesContainer);
+                    foldersContainer.appendChild(folderDiv);
+                }
+            } else {
+                foldersContainer.innerHTML = '<p>No folders and images found in /crops.</p>';
+            }
+        });
+
+        async function addToWardrobe() {
+            const checkboxes = document.querySelectorAll('input[name="clothes-checkbox"]:checked');
+
+            const categories = [];
+            const paths = [];
+
+            checkboxes.forEach(checkbox => {
+                const category = checkbox.parentElement.parentElement.previousElementSibling.textContent.trim();
+                const path = checkbox.nextSibling.src;
+
+                categories.push(category);
+                paths.push(path);
+            });
+
+            const response = await fetch('/add_to_wardrobe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    categories: categories,
+                    paths: paths,
+                }),
+            });
+
+            if (response.ok) {
+                console.log('Added to wardrobe successfully!');
+            } else {
+                console.error('Error adding to wardrobe:', response.statusText);
+            }
+        }
+    </script>
+</div>
+
+</body>
+
+</html>

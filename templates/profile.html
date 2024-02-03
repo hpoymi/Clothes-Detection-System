@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='profile.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <form id="profile-form" class="form" action="{{ url_for('profile') }}" method="post" style="display: none;">
+            <input type="hidden" name="name" id="hidden-name-input">
+        </form>
+
+        <a href="/" class="profile-link" onclick="document.getElementById('profile-form').submit()">
+            <img src="{{ url_for('static', filename='profile_image.png') }}" alt="Profile" class="profile-image">
+        </a>
+
+        <div class="profile-content">
+            <h1>Moja Szafka Wirtualna</h1>
+            <h2>Wyszukaj ubrania</h2>
+            <input type="text" id="search-input" placeholder="Wyszukaj...">
+            <div class="categories-section">
+                <h2>Kategorie:</h2>
+                <ul class="categories-list">
+                    {% for category, items in wardrobe.items() %}
+                        {% if items %}
+                            <li data-category="{{ category }}">
+                                {{ category }}
+                                <ul class="item-list">
+                                    {% for item in items %}
+                                        <li data-item="{{ item }}" class="item-container" onclick="selectItem(this)">
+                                            <img src="{{ item }}" alt="{{ item }}">
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <button id="select-button" onclick="toggleSelectMode()">Select Clothes</button>
+            <button id="delete-button" onclick="deleteSelectedItems()">Delete Selected</button>
+        </div>
+    </div>
+
+    <script>
+        let isSelectMode = false;
+
+        function toggleSelectMode() {
+            isSelectMode = !isSelectMode;
+            const selectButton = document.getElementById('select-button');
+            const deleteButton = document.getElementById('delete-button');
+            const itemElements = document.querySelectorAll('.item-list .item-container');
+
+            if (isSelectMode) {
+                selectButton.style.display = 'none';
+                deleteButton.style.display = 'block';
+                itemElements.forEach(item => item.classList.add('selectable'));
+            } else {
+                selectButton.style.display = 'block';
+                deleteButton.style.display = 'none';
+                itemElements.forEach(item => {
+                    item.classList.remove('selectable', 'selected');
+                    item.style.border = 'none';
+                });
+            }
+        }
+
+        function selectItem(element) {
+            if (isSelectMode && element.classList.contains('selectable')) {
+                element.classList.toggle('selected');
+                element.style.border = element.classList.contains('selected') ? '2px solid #ff0000' : 'none';
+            }
+            updateDeleteButtonVisibility();
+        }
+
+        function deleteSelectedItems() {
+            const selectedItems = document.querySelectorAll('.item-list .item-container.selected');
+            const data = [];
+
+            selectedItems.forEach(item => {
+                const category = item.parentNode.parentNode.getAttribute('data-category');
+                const itemName = item.getAttribute('data-item');
+                data.push({ category, itemName });
+            });
+
+            fetch('/delete_selected_from_wardrobe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ data }),
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        selectedItems.forEach(item => item.parentNode.removeChild(item));
+                        updateDeleteButtonVisibility();
+                        toggleSelectMode();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting selected items:', error);
+                });
+        }
+
+        function updateDeleteButtonVisibility() {
+            const deleteButton = document.getElementById('delete-button');
+            const selectedItems = document.querySelectorAll('.item-list .item-container.selected');
+
+            deleteButton.style.display = selectedItems.length > 0 ? 'block' : 'none';
+        }
+    </script>
+</body>
+
+</html>

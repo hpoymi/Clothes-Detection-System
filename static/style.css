@@ -1,0 +1,137 @@
+html, body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+
+body {
+    background: linear-gradient(to bottom right, #b134db, #439acc);
+    color: #000000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+.container {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 70%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: fixed;
+    top: 5%;
+    bottom: 5%; 
+    overflow-y: auto;
+}
+
+form {
+    margin-top: 20px;
+}
+
+h1 {
+    color: #007BFF;
+}
+
+.profile-link {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.profile-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin: 30px;
+
+}
+
+p {
+    margin-top: 20px;
+}
+
+#image-upload {
+    display: none;
+}
+
+#upload-button,
+#show-folders-button {
+    display: inline-block;
+    padding: 10px;
+    background-color: #007BFF;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+#upload-button:hover,
+#show-folders-button:hover {
+    background-color: #0056b3;
+}
+
+#upload-button:focus,
+#show-folders-button:focus {
+    outline: none;
+}
+
+#show-folders-button {
+    margin-top: 20px;
+}
+
+#image-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+#image-container img {
+    max-height: 500px;
+    border-radius: 8px;
+    margin-top: 10px;
+    margin-right: 10px;
+    box-shadow: 7px 8px 8px rgba(0, 0, 0, 0.1);
+}
+
+#output-image {
+    margin-right: 0;
+}
+
+#loading-gif {
+    width: 50px;
+    height: 50px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+#folders-container ul li img {
+    max-width: 100px;
+    max-height: 100px;
+    margin: 5px;
+    border-radius: 8px;
+}
+
+.folder-container {
+    margin-bottom: 20px;
+}
+
+.images-container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.images-container img {
+    max-width: 100%;
+    height: auto;
+    margin: 5px;
+    border-radius: 8px;
+}
